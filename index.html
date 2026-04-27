@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Advanced Sorting Visualizer</title>
+  <title>Sorting Visualizer</title>
 
   <style>
     body {
@@ -15,29 +15,25 @@
     }
 
     h1 {
-      margin-bottom: 15px;
-      color: #111827;
-    }
-
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
       margin-bottom: 20px;
     }
 
-    button, select, input {
-      padding: 10px 14px;
+    .controls {
+      margin-bottom: 20px;
+    }
+
+    button, select {
+      padding: 10px 15px;
+      margin: 5px;
+      font-size: 14px;
       border: none;
       border-radius: 8px;
-      font-size: 14px;
+      cursor: pointer;
     }
 
     button {
       background: #2563eb;
       color: white;
-      cursor: pointer;
     }
 
     button:hover {
@@ -48,218 +44,231 @@
       display: flex;
       justify-content: center;
       align-items: flex-end;
+      gap: 8px;
       height: 420px;
-      gap: 4px;
       margin-top: 20px;
-      padding: 12px;
       background: white;
+      padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.08);
     }
 
+    .bar-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
     .bar {
-      width: 24px;
+      width: 35px;
       background: #3b82f6;
-      border-radius: 4px 4px 0 0;
-      transition: height 0.25s ease, background 0.25s ease;
+      border-radius: 5px 5px 0 0;
+      transition: height 0.5s ease, background 0.5s ease;
+    }
+
+    .bar-value {
+      margin-top: 8px;
+      font-size: 14px;
+      font-weight: bold;
     }
 
     .info {
-      margin-top: 10px;
+      margin-top: 15px;
       font-weight: bold;
-      color: #111827;
     }
   </style>
 </head>
 <body>
 
-  <h1>Sorting Visualizer</h1>
+<h1>Sorting Visualizer</h1>
 
-  <div class="controls">
-    <button onclick="generateArray()">Generate New Array</button>
+<div class="controls">
+  <button onclick="generateArray()">Generate Array</button>
 
-    <select id="algorithm">
-      <option value="bubble">Bubble Sort</option>
-      <option value="insertion">Insertion Sort</option>
-      <option value="selection">Selection Sort</option>
-      <option value="merge">Merge Sort</option>
-    </select>
+  <select id="algorithm">
+    <option value="bubble">Bubble Sort</option>
+    <option value="insertion">Insertion Sort</option>
+    <option value="selection">Selection Sort</option>
+    <option value="merge">Merge Sort</option>
+  </select>
 
-    
+  <button onclick="startSort()">Start Sorting</button>
+</div>
 
-    <button onclick="startSort()">Start Sorting</button>
-  </div>
+<div class="info" id="status">Ready</div>
+<div class="info" id="steps">Step details will appear here</div>
 
-  <div class="info" id="status">Ready</div>
-  <div id="array"></div>
+<div id="array"></div>
 
-  <script>
-    let values = [];
-    const container = document.getElementById("array");
-    const statusText = document.getElementById("status");
+<script>
+  let values = [120, 80, 200, 60, 150, 90, 250, 40, 180, 110];
 
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+  const container = document.getElementById("array");
+  const statusText = document.getElementById("status");
+  const stepsText = document.getElementById("steps");
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  function getSpeed() {
+    return 700; // slower swapping
+  }
+
+  function generateArray() {
+    container.innerHTML = "";
+    statusText.innerText = "Array Generated";
+    stepsText.innerText = "Bars are displayed with values below them.";
+
+    for (let i = 0; i < values.length; i++) {
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("bar-wrapper");
+
+      const bar = document.createElement("div");
+      bar.classList.add("bar");
+      bar.style.height = `${values[i]}px`;
+
+      const label = document.createElement("div");
+      label.classList.add("bar-value");
+      label.innerText = values[i];
+
+      wrapper.appendChild(bar);
+      wrapper.appendChild(label);
+      container.appendChild(wrapper);
     }
+  }
 
-    function getSpeed() {
-      return 500;
-    }
+  function updateBars(active = [], sorted = []) {
+    const bars = document.querySelectorAll(".bar");
+    const labels = document.querySelectorAll(".bar-value");
 
-    function generateArray() {
-      values = [120, 80, 200, 60, 150, 90, 250, 40, 180, 110, 140, 70];
-      container.innerHTML = "";
-      statusText.innerText = "Array Generated";
+    bars.forEach((bar, index) => {
+      bar.style.height = `${values[index]}px`;
+      labels[index].innerText = values[index];
 
-      for (let i = 0; i < values.length; i++) {
-        const bar = document.createElement("div");
-        bar.classList.add("bar");
-        bar.style.height = `${values[i]}px`;
-        container.appendChild(bar);
+      if (sorted.includes(index)) {
+        bar.style.background = "green";
+      } else if (active.includes(index)) {
+        bar.style.background = "red";
+      } else {
+        bar.style.background = "#3b82f6";
       }
-    }
+    });
+  }
 
-    function updateBars(active = [], sorted = []) {
-      const bars = document.querySelectorAll(".bar");
+  async function bubbleSort() {
+    for (let i = 0; i < values.length; i++) {
+      for (let j = 0; j < values.length - i - 1; j++) {
+        stepsText.innerText = `Comparing ${values[j]} and ${values[j + 1]}`;
+        updateBars([j, j + 1]);
+        await sleep(getSpeed());
 
-      bars.forEach((bar, index) => {
-        bar.style.height = `${values[index]}px`;
-
-        if (sorted.includes(index)) {
-          bar.style.background = "#16a34a";
-        } else if (active.includes(index)) {
-          bar.style.background = "#ef4444";
-        } else {
-          bar.style.background = "#3b82f6";
-        }
-      });
-    }
-
-    async function bubbleSort() {
-      for (let i = 0; i < values.length; i++) {
-        for (let j = 0; j < values.length - i - 1; j++) {
-          statusText.innerText = `Comparing index ${j} and ${j + 1}`;
+        if (values[j] > values[j + 1]) {
+          stepsText.innerText = `Swapping ${values[j]} and ${values[j + 1]}`;
+          [values[j], values[j + 1]] = [values[j + 1], values[j]];
           updateBars([j, j + 1]);
           await sleep(getSpeed());
-
-          if (values[j] > values[j + 1]) {
-            statusText.innerText = `Swapping ${values[j]} and ${values[j + 1]}`;
-            [values[j], values[j + 1]] = [values[j + 1], values[j]];
-            updateBars([j, j + 1]);
-            await sleep(getSpeed());
-          }
         }
       }
     }
+  }
 
-    async function insertionSort() {
-      for (let i = 1; i < values.length; i++) {
-        let key = values[i];
-        let j = i - 1;
+  async function insertionSort() {
+    for (let i = 1; i < values.length; i++) {
+      let key = values[i];
+      let j = i - 1;
 
-        while (j >= 0 && values[j] > key) {
-          statusText.innerText = `Comparing index ${j} and ${j + 1}`;
-          updateBars([j, j + 1]);
-          await sleep(getSpeed());
-          values[j + 1] = values[j];
-          j--;
-        }
+      while (j >= 0 && values[j] > key) {
+        stepsText.innerText = `Moving ${values[j]} to the right`;
+        updateBars([j, j + 1]);
+        await sleep(getSpeed());
 
-        values[j + 1] = key;
+        values[j + 1] = values[j];
+        j--;
         updateBars([j + 1]);
-        await sleep(getSpeed());
       }
+
+      values[j + 1] = key;
+      await sleep(getSpeed());
     }
+  }
 
-    async function mergeSort(start = 0, end = values.length - 1) {
-      if (start >= end) return;
+  async function selectionSort() {
+    for (let i = 0; i < values.length; i++) {
+      let minIndex = i;
 
-      const mid = Math.floor((start + end) / 2);
-      await mergeSort(start, mid);
-      await mergeSort(mid + 1, end);
-      await merge(start, mid, end);
-    }
-
-    async function merge(start, mid, end) {
-      let left = values.slice(start, mid + 1);
-      let right = values.slice(mid + 1, end + 1);
-
-      let i = 0, j = 0, k = start;
-
-      while (i < left.length && j < right.length) {
-        updateBars([k]);
+      for (let j = i + 1; j < values.length; j++) {
+        stepsText.innerText = `Checking minimum between ${values[minIndex]} and ${values[j]}`;
+        updateBars([minIndex, j]);
         await sleep(getSpeed());
 
-        if (left[i] <= right[j]) {
-          values[k] = left[i];
-          i++;
-        } else {
-          values[k] = right[j];
-          j++;
+        if (values[j] < values[minIndex]) {
+          minIndex = j;
         }
-        k++;
       }
 
-      while (i < left.length) {
-        updateBars([k]);
-        await sleep(getSpeed());
-        values[k] = left[i];
-        i++;
-        k++;
-      }
+      stepsText.innerText = `Placing minimum value at position ${i + 1}`;
+      [values[i], values[minIndex]] = [values[minIndex], values[i]];
+      updateBars([i, minIndex]);
+      await sleep(getSpeed());
+    }
+  }
 
-      while (j < right.length) {
-        updateBars([k]);
-        await sleep(getSpeed());
-        values[k] = right[j];
-        j++;
-        k++;
-      }
+  async function mergeSort(start = 0, end = values.length - 1) {
+    if (start >= end) return;
 
-      updateBars();
+    const mid = Math.floor((start + end) / 2);
+    await mergeSort(start, mid);
+    await mergeSort(mid + 1, end);
+    await merge(start, mid, end);
+  }
+
+  async function merge(start, mid, end) {
+    let left = values.slice(start, mid + 1);
+    let right = values.slice(mid + 1, end + 1);
+
+    let i = 0, j = 0, k = start;
+
+    while (i < left.length && j < right.length) {
+      stepsText.innerText = `Merging values into correct order`;
+      updateBars([k]);
+      await sleep(getSpeed());
+
+      if (left[i] <= right[j]) {
+        values[k] = left[i++];
+      } else {
+        values[k] = right[j++];
+      }
+      k++;
+      updateBars([k]);
     }
 
-    async function selectionSort() {
-      for (let i = 0; i < values.length; i++) {
-        let minIndex = i;
+    while (i < left.length) values[k++] = left[i++];
+    while (j < right.length) values[k++] = right[j++];
 
-        for (let j = i + 1; j < values.length; j++) {
-          updateBars([minIndex, j]);
-          await sleep(getSpeed());
+    updateBars();
+    await sleep(getSpeed());
+  }
 
-          if (values[j] < values[minIndex]) {
-            minIndex = j;
-          }
-        }
+  async function startSort() {
+    const algo = document.getElementById("algorithm").value;
+    statusText.innerText = "Sorting Started...";
+    stepsText.innerText = "Follow each comparison and swap carefully.";
 
-        [values[i], values[minIndex]] = [values[minIndex], values[i]];
-        statusText.innerText = `Placing minimum value at position ${i}`;
-        updateBars([i, minIndex]);
-        await sleep(getSpeed());
-      }
-    }
+    if (algo === "bubble") await bubbleSort();
+    if (algo === "insertion") await insertionSort();
+    if (algo === "selection") await selectionSort();
+    if (algo === "merge") await mergeSort();
 
-    async function startSort() {
-      const algo = document.getElementById("algorithm").value;
-      statusText.innerText = "Sorting Started... Follow each comparison and swap step carefully.";
+    updateBars([], values.map((_, i) => i));
+    statusText.innerText = "Sorting Completed";
+    stepsText.innerText = "All bars are sorted from smallest to largest.";
+    alert("Sorting Completed Successfully");
+  }
 
-      if (algo === "bubble") {
-        await bubbleSort();
-      } else if (algo === "insertion") {
-        await insertionSort();
-      } else if (algo === "selection") {
-        await selectionSort();
-      } else if (algo === "merge") {
-        await mergeSort();
-      }
-
-      updateBars([], values.map((_, i) => i));
-      statusText.innerText = "Sorting Completed";
-      alert("Sorting Completed Successfully");
-    }
-
-    generateArray();
-  </script>
+  generateArray();
+</script>
 
 </body>
 </html>
